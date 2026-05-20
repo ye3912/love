@@ -3,7 +3,6 @@ package com.night.memo.ui.screens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +20,6 @@ import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -94,14 +92,12 @@ fun IntroScreen(
                 .background(MaterialTheme.colorScheme.primary)
                 .combinedClickable(
                     interactionSource = interactionSource,
-                    indication = null,
                     onClick = onGetStarted,
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onSpecialAction()
                     }
-                )
-                .indication(interactionSource, ripple()),
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
