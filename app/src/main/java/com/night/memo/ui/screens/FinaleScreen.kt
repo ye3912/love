@@ -122,9 +122,7 @@ fun FinaleScreen(
                         HotPink.copy(alpha = 0.8f),
                         VibrantPurple,
                         RoyalPurple.copy(alpha = 0.9f)
-                    ),
-                    center = Offset(0.5f, 0.45f),
-                    radius = 1.2f
+                    )
                 )
             )
             .systemBarsPadding()
