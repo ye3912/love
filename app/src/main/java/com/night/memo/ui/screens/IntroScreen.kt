@@ -1,9 +1,15 @@
 package com.night.memo.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -24,13 +30,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -41,32 +50,20 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.night.memo.ui.theme.CrimsonRed
+import com.night.memo.ui.theme.DeepIndigo
+import com.night.memo.ui.theme.GlassCard
 import com.night.memo.ui.theme.MidnightBlue
 import com.night.memo.ui.theme.RoyalPurple
 import com.night.memo.ui.theme.SoftPurple
-import com.night.memo.ui.theme.GlassWhite
-import com.night.memo.ui.theme.GlassBorder
-import com.night.memo.ui.theme.GlassCard
-import com.night.memo.ui.theme.CrimsonRed
-import com.night.memo.ui.theme.DeepIndigo
 import kotlinx.coroutines.delay
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.text.font.FontFamily
+import kotlin.math.sin
+import kotlin.random.Random
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -76,12 +73,7 @@ fun IntroScreen(
     modifier: Modifier = Modifier
 ) {
     var letterOpened by remember { mutableStateOf(false) }
-    var showContent by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(Unit) {
-        showContent = true
-    }
 
     // Beating heart animation
     val infiniteTransition = rememberInfiniteTransition(label = "heart")
@@ -89,7 +81,7 @@ fun IntroScreen(
         initialValue = 1f,
         targetValue = 1.18f,
         animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = androidx.compose.animation.core.EaseInOutCubic),
+            animation = tween(700, easing = EaseInOutCubic),
             repeatMode = RepeatMode.Reverse
         ),
         label = "heartBeat"
@@ -100,10 +92,21 @@ fun IntroScreen(
         initialValue = 0f,
         targetValue = -8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = androidx.compose.animation.core.EaseInOutCubic),
+            animation = tween(2000, easing = EaseInOutCubic),
             repeatMode = RepeatMode.Reverse
         ),
         label = "float"
+    )
+
+    // Envelope glow pulse
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = EaseInOutCubic),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "envelopeGlow"
     )
 
     Box(
@@ -117,9 +120,7 @@ fun IntroScreen(
             .systemBarsPadding()
             .combinedClickable(
                 onClick = {
-                    if (letterOpened) {
-                        // Letter is showing — do nothing on tap
-                    } else {
+                    if (!letterOpened) {
                         onGetStarted()
                     }
                 },
@@ -131,17 +132,18 @@ fun IntroScreen(
                 }
             )
     ) {
-        // Aurora light spots (decorative)
+        // Star particles background
+        StarParticles()
+
+        // Aurora light spots
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Top-right glow
             drawCircle(
-                color = SoftPurple.copy(alpha = 0.15f),
+                color = SoftPurple.copy(alpha = 0.12f),
                 radius = size.width * 0.5f,
                 center = Offset(size.width * 0.8f, size.height * 0.2f)
             )
-            // Bottom-left glow
             drawCircle(
-                color = Color(0xFF6A4ABE).copy(alpha = 0.1f),
+                color = Color(0xFF6A4ABE).copy(alpha = 0.08f),
                 radius = size.width * 0.4f,
                 center = Offset(size.width * 0.2f, size.height * 0.8f)
             )
@@ -158,12 +160,22 @@ fun IntroScreen(
             ) {
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Envelope
+                // Envelope with glow
                 Box(
                     modifier = Modifier
                         .size(220.dp, 160.dp)
-                        .scale(1f + floatOffset / 400f)
+                        .scale(1f + floatOffset / 400f),
+                    contentAlignment = Alignment.Center
                 ) {
+                    // Soft glow behind envelope
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(
+                            color = Color(0xFFFF6B81).copy(alpha = glowAlpha * 0.15f),
+                            radius = size.width * 0.7f,
+                            center = Offset(size.width / 2, size.height / 2)
+                        )
+                    }
+
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val w = size.width
                         val h = size.height
@@ -185,7 +197,7 @@ fun IntroScreen(
                             cornerRadius = CornerRadius(cornerR)
                         )
 
-                        // Envelope flap (top triangle)
+                        // Envelope flap
                         val flap = Path().apply {
                             moveTo(0f, 0f)
                             lineTo(w / 2, h * 0.38f)
@@ -201,7 +213,7 @@ fun IntroScreen(
                             )
                         }
 
-                        // Flap border line
+                        // Flap border
                         val flapLine = Path().apply {
                             moveTo(0f, 0f)
                             lineTo(w / 2, h * 0.38f)
@@ -209,7 +221,7 @@ fun IntroScreen(
                         }
                         drawPath(flapLine, color = Color(0xFFE0E0E0), style = Stroke(1.dp.toPx()))
 
-                        // Red ribbon (horizontal seam)
+                        // Red ribbon
                         drawLine(
                             color = CrimsonRed,
                             start = Offset(0f, h / 2),
@@ -217,7 +229,7 @@ fun IntroScreen(
                             strokeWidth = 3.dp.toPx()
                         )
 
-                        // Ribbon bow (center knot)
+                        // Ribbon bow center
                         drawCircle(
                             color = CrimsonRed,
                             radius = 7.dp.toPx(),
@@ -249,7 +261,7 @@ fun IntroScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(36.dp))
 
                 // Hint text
                 Text(
@@ -271,7 +283,7 @@ fun IntroScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Subtle hint at bottom
+                // Bottom hint
                 Text(
                     text = "轻触进入备忘录",
                     fontSize = 12.sp,
@@ -280,108 +292,215 @@ fun IntroScreen(
                 )
             }
         } else {
-            // === LETTER VIEW ===
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(800)) +
-                        scaleIn(initialScale = 0.9f, animationSpec = tween(600)) +
-                        slideInVertically(
-                            initialOffsetY = { it / 4 },
-                            animationSpec = tween(600)
-                        )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Letter paper
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(GlassCard)
-                            .padding(28.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "致 ln：",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2D2D2D),
-                                fontFamily = FontFamily.Default
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            Text(
-                                text = "是你先打给我的。\n" +
-                                        "那时候只是同学聊天，\n" +
-                                        "没想到会聊过一天又一天。",
-                                fontSize = 16.sp,
-                                lineHeight = 28.sp,
-                                color = Color(0xFF4A4A4A),
-                                fontFamily = FontFamily.Default
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Text(
-                                text = "你的温柔藏在细节里，\n" +
-                                        "让我一点一点沦陷。",
-                                fontSize = 16.sp,
-                                lineHeight = 28.sp,
-                                color = Color(0xFF4A4A4A)
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Text(
-                                text = "两年了，有些话\n" +
-                                        "想好好告诉你——",
-                                fontSize = 16.sp,
-                                lineHeight = 28.sp,
-                                color = Color(0xFF4A4A4A)
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Text(
-                                text = "—— wh",
-                                fontSize = 16.sp,
-                                color = Color(0xFF6A6A6A),
-                                modifier = Modifier.align(Alignment.End)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Continue button
-                    Button(
-                        onClick = onOpenLetter,
-                        shape = RoundedCornerShape(28.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF6B81)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 6.dp
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                    ) {
-                        Text(
-                            text = "翻开回忆  →",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
+            // === LETTER VIEW (with staggered fade-in) ===
+            LetterView(onOpenLetter = onOpenLetter)
         }
     }
 }
+
+@Composable
+private fun LetterView(onOpenLetter: () -> Unit) {
+    // Staggered line visibility
+    val lineCount = 8
+    val lineVisible = remember { List(lineCount) { Animatable(0f) } }
+
+    LaunchedEffect(Unit) {
+        for (i in lineVisible.indices) {
+            delay(120L)
+            lineVisible[i].animateTo(
+                targetValue = 1f,
+                animationSpec = tween(400, easing = EaseInOutCubic)
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Letter paper
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(GlassCard)
+                .padding(28.dp)
+        ) {
+            Column {
+                // Line 0: greeting
+                Text(
+                    text = "致 ln：",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2D2D2D),
+                    fontFamily = FontFamily.Default,
+                    modifier = Modifier.alpha(lineVisible[0].value)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Line 1
+                Text(
+                    text = "是你先打给我的。",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[1].value)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Line 2
+                Text(
+                    text = "那时候只是同学间的闲聊，",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[2].value)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Line 3
+                Text(
+                    text = "谁也没想到，这一聊就是两年。",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[3].value)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Line 4
+                Text(
+                    text = "你的温柔都藏在细节里，",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[4].value)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Line 5
+                Text(
+                    text = "让我在不知不觉中沦陷。",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[5].value)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Line 6
+                Text(
+                    text = "两年了，有些话，",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[6].value)
+                )
+
+                Text(
+                    text = "想认真地告诉你——",
+                    fontSize = 16.sp,
+                    lineHeight = 28.sp,
+                    color = Color(0xFF4A4A4A),
+                    modifier = Modifier.alpha(lineVisible[6].value)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Line 7: signature
+                Text(
+                    text = "—— wh",
+                    fontSize = 16.sp,
+                    color = Color(0xFF6A6A6A),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .alpha(lineVisible[7].value)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Continue button
+        Button(
+            onClick = onOpenLetter,
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF6B81)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 6.dp
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+        ) {
+            Text(
+                text = "翻开回忆  →",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun StarParticles() {
+    val stars = remember {
+        List(35) {
+            Star(
+                x = Random.nextFloat(),
+                y = Random.nextFloat(),
+                size = Random.nextFloat() * 2.5f + 0.5f,
+                alpha = Random.nextFloat() * 0.6f + 0.2f,
+                speed = Random.nextFloat() * 0.3f + 0.1f
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "stars")
+    val twinkle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "twinkle"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        stars.forEach { star ->
+            // Twinkle effect using sin wave
+            val phase = (twinkle + star.speed * 360f) % 360f
+            val twinkleAlpha = (sin(Math.toRadians(phase.toDouble())).toFloat() * 0.3f + 0.7f)
+
+            drawCircle(
+                color = Color.White.copy(alpha = star.alpha * twinkleAlpha),
+                radius = star.size,
+                center = Offset(star.x * w, star.y * h)
+            )
+        }
+    }
+}
+
+private data class Star(
+    val x: Float,
+    val y: Float,
+    val size: Float,
+    val alpha: Float,
+    val speed: Float
+)
