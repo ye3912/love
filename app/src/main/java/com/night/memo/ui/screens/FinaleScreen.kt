@@ -107,7 +107,7 @@ fun FinaleScreen(
     )
 
     // Typewriter effect for "我喜欢你"
-    val fullText = "我喜欢你"
+    val fullText = "宝宝520快乐"
     val typewriterProgress = remember { Animatable(0f) }
     val displayedText = remember { mutableStateOf("") }
 
